@@ -1,3 +1,17 @@
+# CC Open-Ended Lab
+Cloud Computing Lab (SEL 401) 
+
+Student Name: Hasan Zahid 
+
+Enrollment #: 01-131232-028 
+
+Teacher: Engr. Sulman Zafar
+
+Dept of SE, BUIC
+
+
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
