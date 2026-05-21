@@ -1,121 +1,150 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import React, { useState, useEffect } from 'react'
+import { supabase } from './lib/supabaseClient'
+import FeedbackForm from './components/FeedbackForm'
+import AdminLogin from './components/AdminLogin'
+import AdminDashboard from './components/AdminDashboard'
+import { Shield, MessageSquare, LogOut, Heart, RefreshCw } from 'lucide-react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState('feedback') // 'feedback', 'login'
+
+  useEffect(() => {
+    // 1. Check current session on mount
+    const checkSession = async () => {
+      try {
+        const { data: { session: activeSession } } = await supabase.auth.getSession()
+        setSession(activeSession)
+      } catch (err) {
+        console.error('Error getting initial session:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkSession()
+
+    // 2. Listen to authentication changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log('Auth state event change:', event)
+      setSession(newSession)
+
+      if (newSession) {
+        setView('dashboard')
+      } else {
+        setView('feedback')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      setView('feedback')
+    } catch (err) {
+      console.error('Error signing out:', err)
+    }
+  }
+
+  // Loader screen
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: '#0b0a0f',
+        color: '#f3f4f6'
+      }}>
+        <RefreshCw size={36} className="empty-icon" style={{ animation: 'spin 2s linear infinite', color: 'var(--accent-color)' }} />
+        <p style={{ marginTop: '16px', fontSize: '0.95rem', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
+          SECURE CONNECTION ESTABLISHING...
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="container">
+      {/* App Header */}
+      <header className="app-header">
+        <div className="logo-wrapper" onClick={() => setView(session ? 'dashboard' : 'feedback')}>
+          <MessageSquare className="logo-icon" size={24} />
+          <span className="logo-text">On the Down-Low</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="header-actions">
+          {session ? (
+            <>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Shield size={14} style={{ color: 'var(--accent-light)' }} />
+                Admin Active
+              </span>
+              <button
+                onClick={handleLogout}
+                className="btn btn-secondary btn-sm"
+              >
+                <LogOut size={14} />
+                Sign Out
+              </button>
+            </>
+          ) : view === 'feedback' ? (
+            <button
+              onClick={() => setView('login')}
+              className="btn btn-secondary btn-sm"
+            >
+              <Shield size={14} />
+              Admin Portal
+            </button>
+          ) : (
+            <button
+              onClick={() => setView('feedback')}
+              className="btn btn-secondary btn-sm"
+            >
+              Feedback Box
+            </button>
+          )}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* Main Body Grid */}
+      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {session ? (
+          <AdminDashboard onLogout={handleLogout} />
+        ) : view === 'login' ? (
+          <AdminLogin onBack={() => setView('feedback')} />
+        ) : (
+          <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <h1>On the Down-Low</h1>
+              <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '500px', margin: '8px auto 0' }}>
+                A secure space to submit your opinions, reports, and praise anonymously. Because we like to keep it on the down-low.
+              </p>
+            </div>
+            <FeedbackForm onAdminClick={() => setView('login')} />
+          </div>
+        )}
+      </main>
+
+      {/* Decorative Footer */}
+      <footer className="app-footer">
+        <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+          <span>On the Down-Low Anonymous Feedback System</span>
+          <span>•</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            A project by Hasan - 028
+          </span>
+        </p>
+      </footer>
+    </div>
   )
 }
 
